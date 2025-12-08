@@ -59,6 +59,29 @@ async function run() {
       res.send({ token: token });
     });
 
+    app.get('/users/:email/role', verifyJWTToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ role: user?.role || 'user' });
+    });
+
+    app.post('/users', async (req, res) => {
+      const user = req.body;
+      user.role = 'user';
+      user.createdAt = new Date();
+      user.status = 'active';
+      const email = user.email;
+      const userExists = await usersCollection.findOne({ email });
+
+      if (userExists) {
+        return res.send({ message: 'user exists' });
+      }
+
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+
     // app.get('/hello', verifyJWTToken, async (req, res) => {
     //   res.send({ message: 'Hello from the other side' });
     // });
