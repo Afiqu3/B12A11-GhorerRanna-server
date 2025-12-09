@@ -51,6 +51,7 @@ async function run() {
     const ghorerRannaDB = client.db('ghorerRannaDB');
     const usersCollection = ghorerRannaDB.collection('users');
     const chefRequestsCollection = ghorerRannaDB.collection('chefRequests');
+    const adminRequestsCollection = ghorerRannaDB.collection('adminRequests');
 
     app.post('/getToken', async (req, res) => {
       const loggedUser = req.body;
@@ -92,6 +93,8 @@ async function run() {
       res.send(result);
     });
 
+
+    // chef request api
     app.get('/chef-requests/:email/check', verifyJWTToken, async (req, res) => {
       const email = req.params.email;
       const query = { userEmail:email };
@@ -110,9 +113,25 @@ async function run() {
       res.send(result);
     });
 
-    // app.get('/hello', verifyJWTToken, async (req, res) => {
-    //   res.send({ message: 'Hello from the other side' });
-    // });
+    // admin request api
+    app.get('/admin-requests/:email/check', verifyJWTToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail:email };
+      const request = await adminRequestsCollection.findOne(query);
+      if (request) {
+        return res.send({ requested: true });
+      }
+      res.send({ requested: false });
+    });
+
+    app.post('/admin-requests', verifyJWTToken, async (req, res) => {
+      const request = req.body;
+      request.requestStatus = 'pending';
+      request.requestTime = new Date();
+      const result = await adminRequestsCollection.insertOne(request);
+      res.send(result);
+    });
+
 
     await client.db('admin').command({ ping: 1 });
     console.log(
