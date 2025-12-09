@@ -50,6 +50,7 @@ async function run() {
     await client.connect();
     const ghorerRannaDB = client.db('ghorerRannaDB');
     const usersCollection = ghorerRannaDB.collection('users');
+    const chefRequestsCollection = ghorerRannaDB.collection('chefRequests');
 
     app.post('/getToken', async (req, res) => {
       const loggedUser = req.body;
@@ -57,6 +58,15 @@ async function run() {
         expiresIn: '12h',
       });
       res.send({ token: token });
+    });
+
+    // user related api
+
+    app.get('/users/:email/info', verifyJWTToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send(user);
     });
 
     app.get('/users/:email/role', verifyJWTToken, async (req, res) => {
@@ -81,6 +91,8 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
+
+    
 
     // app.get('/hello', verifyJWTToken, async (req, res) => {
     //   res.send({ message: 'Hello from the other side' });
