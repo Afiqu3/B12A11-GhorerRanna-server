@@ -92,7 +92,23 @@ async function run() {
       res.send(result);
     });
 
-    
+    app.get('/chef-requests/:email/check', verifyJWTToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail:email };
+      const request = await chefRequestsCollection.findOne(query);
+      if (request) {
+        return res.send({ requested: true });
+      }
+      res.send({ requested: false });
+    });
+
+    app.post('/chef-requests', verifyJWTToken, async (req, res) => {
+      const request = req.body;
+      request.requestStatus = 'pending';
+      request.requestTime = new Date();
+      const result = await chefRequestsCollection.insertOne(request);
+      res.send(result);
+    });
 
     // app.get('/hello', verifyJWTToken, async (req, res) => {
     //   res.send({ message: 'Hello from the other side' });
