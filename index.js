@@ -52,6 +52,7 @@ async function run() {
     const usersCollection = ghorerRannaDB.collection('users');
     const chefRequestsCollection = ghorerRannaDB.collection('chefRequests');
     const adminRequestsCollection = ghorerRannaDB.collection('adminRequests');
+    const mealsCollection = ghorerRannaDB.collection('meals');
 
     app.post('/getToken', async (req, res) => {
       const loggedUser = req.body;
@@ -132,6 +133,47 @@ async function run() {
       res.send(result);
     });
 
+    // meals related api
+    app.get('/meals', async (req, res) => {
+      const cursor = mealsCollection.find();
+      const meals = await cursor.toArray();
+      res.send(meals);
+    });
+
+    app.get('meal/:email', verifyJWTToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail: email };
+      const cursor = mealsCollection.find(query);
+      const meals = await cursor.toArray();
+      res.send(meals);
+    });
+
+    app.post('/meals', verifyJWTToken, async (req, res) => {
+      const meal = req.body;
+      meal.createdAt = new Date();
+      const result = await mealsCollection.insertOne(meal);
+      res.send(result);
+    });
+
+    app.patch('/meals/:id', verifyJWTToken, async (req, res) => {
+      const id = req.params.id;
+      const updatedMeal = req.body;
+      const filter = { _id: new ObjectId(id) }; 
+      const updateDoc = {
+        $set: {
+          ...updatedMeal,
+        },
+      };
+      const result = await mealsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.delete('/meals/:id', verifyJWTToken, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await mealsCollection.deleteOne(filter);
+      res.send(result);
+    });
 
     await client.db('admin').command({ ping: 1 });
     console.log(
