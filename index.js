@@ -140,12 +140,20 @@ async function run() {
       res.send(meals);
     });
 
-    app.get('meal/:email', verifyJWTToken, async (req, res) => {
+    app.get('/meals/:email', verifyJWTToken, async (req, res) => {
       const email = req.params.email;
+      // console.log(email)
       const query = { userEmail: email };
       const cursor = mealsCollection.find(query);
       const meals = await cursor.toArray();
       res.send(meals);
+    });
+
+    app.get('/meals/:id/info', verifyJWTToken, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const meal = await mealsCollection.findOne(query);
+      res.send(meal);
     });
 
     app.post('/meals', verifyJWTToken, async (req, res) => {
