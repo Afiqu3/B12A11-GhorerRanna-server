@@ -53,6 +53,8 @@ async function run() {
     const chefRequestsCollection = ghorerRannaDB.collection('chefRequests');
     const adminRequestsCollection = ghorerRannaDB.collection('adminRequests');
     const mealsCollection = ghorerRannaDB.collection('meals');
+    const favoritesMealCollection = ghorerRannaDB.collection('favorites');
+    const reviewsCollection = ghorerRannaDB.collection('reviews');
 
     app.post('/getToken', async (req, res) => {
       const loggedUser = req.body;
@@ -94,11 +96,10 @@ async function run() {
       res.send(result);
     });
 
-
     // chef request api
     app.get('/chef-requests/:email/check', verifyJWTToken, async (req, res) => {
       const email = req.params.email;
-      const query = { userEmail:email };
+      const query = { userEmail: email };
       const request = await chefRequestsCollection.findOne(query);
       if (request) {
         return res.send({ requested: true });
@@ -115,15 +116,19 @@ async function run() {
     });
 
     // admin request api
-    app.get('/admin-requests/:email/check', verifyJWTToken, async (req, res) => {
-      const email = req.params.email;
-      const query = { userEmail:email };
-      const request = await adminRequestsCollection.findOne(query);
-      if (request) {
-        return res.send({ requested: true });
+    app.get(
+      '/admin-requests/:email/check',
+      verifyJWTToken,
+      async (req, res) => {
+        const email = req.params.email;
+        const query = { userEmail: email };
+        const request = await adminRequestsCollection.findOne(query);
+        if (request) {
+          return res.send({ requested: true });
+        }
+        res.send({ requested: false });
       }
-      res.send({ requested: false });
-    });
+    );
 
     app.post('/admin-requests', verifyJWTToken, async (req, res) => {
       const request = req.body;
@@ -141,7 +146,7 @@ async function run() {
     });
 
     app.get('/latest-meals', async (req, res) => {
-      const cursor = mealsCollection.find();
+      const cursor = mealsCollection.find().sort({ createdAt: -1 }).limit(6);
       const meals = await cursor.toArray();
       res.send(meals);
     });
@@ -172,7 +177,7 @@ async function run() {
     app.patch('/meals/:id', verifyJWTToken, async (req, res) => {
       const id = req.params.id;
       const updatedMeal = req.body;
-      const filter = { _id: new ObjectId(id) }; 
+      const filter = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
           ...updatedMeal,
@@ -186,6 +191,36 @@ async function run() {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const result = await mealsCollection.deleteOne(filter);
+      res.send(result);
+    });
+
+    // favorites related api
+    app.post('/favorites', verifyJWTToken, async (req, res) => {
+      const favorite = req.body;
+      favorite.addedAt = new Date();
+      const result = await favoritesMealCollection.insertOne(favorite);
+      res.send(result);
+    });
+
+    // reviews related api
+    app.post('/reviews', verifyJWTToken, async (req, res) => {
+      const review = req.body;
+      review.createdAt = new Date();
+      const result = await reviewsCollection.insertOne(review);
+
+      const mealId = review.mealId;
+      const meal = await mealsCollection.findOne({ _id: new ObjectId(mealId) });
+      const newReviewCount = (meal.reviewCount || 0) + 1;
+      const newReviewSum = (meal.reviewSum || 0) + review.rating;
+      const updateDoc = {
+        $set: {
+          reviewCount: newReviewCount,
+          reviewSum: newReviewSum,
+          rating: newReviewSum / newReviewCount,
+        },
+      };
+      await mealsCollection.updateOne({ _id: new ObjectId(mealId) }, updateDoc);
+
       res.send(result);
     });
 
