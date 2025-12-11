@@ -140,6 +140,12 @@ async function run() {
       res.send(meals);
     });
 
+    app.get('/latest-meals', async (req, res) => {
+      const cursor = mealsCollection.find();
+      const meals = await cursor.toArray();
+      res.send(meals);
+    });
+
     app.get('/meals/:email', verifyJWTToken, async (req, res) => {
       const email = req.params.email;
       // console.log(email)
