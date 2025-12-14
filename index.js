@@ -195,7 +195,7 @@ async function run() {
     });
 
     // favorites related api
-    app.get('/favorites/:email', async (req, res) => {
+    app.get('/favorites/:email', verifyJWTToken, async (req, res) => {
       const email = req.params.email;
       const query = { userEmail: email };
       const cursor = favoritesMealCollection.find(query);
@@ -203,7 +203,7 @@ async function run() {
       res.send(favorites);
     });
 
-    app.get('/favoritesCheck', async (req, res) => {
+    app.get('/favoritesCheck', verifyJWTToken, async (req, res) => {
       // console.log(req.query)
       const mealId = req.query.mealId;
       const email = req.query.email;
@@ -223,6 +223,14 @@ async function run() {
     });
 
     // reviews related api
+    app.get('/reviews/meal/:mealId', async (req, res) => {
+      const mealId = req.params.mealId;
+      const query = { mealId: mealId };
+      const cursor = reviewsCollection.find(query).sort({ createdAt: -1 });
+      const reviews = await cursor.toArray();
+      res.send(reviews);
+    });
+
     app.post('/reviews', verifyJWTToken, async (req, res) => {
       const review = req.body;
       review.createdAt = new Date();
