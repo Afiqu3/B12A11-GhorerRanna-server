@@ -195,6 +195,26 @@ async function run() {
     });
 
     // favorites related api
+    app.get('/favorites/:email', async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail: email };
+      const cursor = favoritesMealCollection.find(query);
+      const favorites = await cursor.toArray();
+      res.send(favorites);
+    });
+
+    app.get('/favoritesCheck', async (req, res) => {
+      // console.log(req.query)
+      const mealId = req.query.mealId;
+      const email = req.query.email;
+      const query = { mealId: mealId, userEmail: email };
+      const favorite = await favoritesMealCollection.findOne(query);
+      if (favorite) {
+        return res.send({ favorite: true });
+      }
+      res.send({ favorite: false });
+    });
+
     app.post('/favorites', verifyJWTToken, async (req, res) => {
       const favorite = req.body;
       favorite.addedAt = new Date();
