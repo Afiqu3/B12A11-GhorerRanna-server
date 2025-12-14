@@ -268,6 +268,19 @@ async function run() {
       res.send(result);
     });
 
+    app.patch('/orders/:id/status', verifyJWTToken, async (req, res) => {
+      const id = req.params.id;
+      const newStatus = req.body.status;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          status: newStatus,
+        },
+      };
+      const result = await ordersCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
     await client.db('admin').command({ ping: 1 });
     console.log(
       'Pinged your deployment. You successfully connected to MongoDB!'
