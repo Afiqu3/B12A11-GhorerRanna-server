@@ -55,6 +55,7 @@ async function run() {
     const mealsCollection = ghorerRannaDB.collection('meals');
     const favoritesMealCollection = ghorerRannaDB.collection('favorites');
     const reviewsCollection = ghorerRannaDB.collection('reviews');
+    const ordersCollection = ghorerRannaDB.collection('orders');
 
     app.post('/getToken', async (req, res) => {
       const loggedUser = req.body;
@@ -233,7 +234,6 @@ async function run() {
 
     app.post('/reviews', verifyJWTToken, async (req, res) => {
       const review = req.body;
-      review.createdAt = new Date();
       const result = await reviewsCollection.insertOne(review);
 
       const mealId = review.mealId;
@@ -249,6 +249,22 @@ async function run() {
       };
       await mealsCollection.updateOne({ _id: new ObjectId(mealId) }, updateDoc);
 
+      res.send(result);
+    });
+
+    // orders related api
+    app.get('/orders/:chefId', verifyJWTToken, async (req, res) => {
+      const chefId = req.params.chefId;
+      const query = { chefId: chefId };
+      const cursor = ordersCollection.find(query).sort({ orderTime: -1 });
+      const orders = await cursor.toArray();
+      res.send(orders);
+    });
+
+    app.post('/orders', verifyJWTToken, async (req, res) => {
+      const order = req.body;
+      order.orderTime = new Date();
+      const result = await ordersCollection.insertOne(order);
       res.send(result);
     });
 
