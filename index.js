@@ -4,6 +4,8 @@ const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
+const stripe = require('stripe')(process.env.STRIPE_SECRET);
+
 const port = process.env.PORT || 3000;
 
 // Middleware
@@ -56,6 +58,7 @@ async function run() {
     const favoritesMealCollection = ghorerRannaDB.collection('favorites');
     const reviewsCollection = ghorerRannaDB.collection('reviews');
     const ordersCollection = ghorerRannaDB.collection('orders');
+    const paymentHistoryCollection = ghorerRannaDB.collection('paymentHistory');
 
     app.post('/getToken', async (req, res) => {
       const loggedUser = req.body;
@@ -287,6 +290,74 @@ async function run() {
       };
       const result = await ordersCollection.updateOne(filter, updateDoc);
       res.send(result);
+    });
+
+    // payment related api
+    app.post('/create-payment-session', verifyJWTToken, async (req, res) => {
+      const orderInfo = req.body;
+      const amount = parseInt(orderInfo.price * 100);
+      const session = await stripe.checkout.sessions.create({
+        line_items: [
+          {
+            price_data: {
+              currency: 'USD',
+              unit_amount: amount,
+              product_data: {
+                name: `Please pay for ${orderInfo.mealName}`,
+              },
+            },
+            quantity: orderInfo.quantity,
+          },
+        ],
+        mode: 'payment',
+        metadata: {
+          mealName: orderInfo.mealName,
+          orderId: orderInfo._id,
+        },
+        customer_email: orderInfo.userEmail,
+        success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.SITE_DOMAIN}/dashboard/my-orders`,
+      });
+      res.send({ url: session.url });
+    });
+
+    app.patch('/payment-success', verifyJWTToken, async (req, res) => {
+      const sessionId = req.query.session_id;
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const transactionId = session.payment_intent;
+
+      const query = { transactionId: transactionId };
+      const paymentExists = await paymentHistoryCollection.findOne(query);
+      if (paymentExists) {
+        return res.send({ message: 'payment recorded' });
+      }
+
+      if (session.payment_status === 'paid') {
+        const query = session.metadata.orderId;
+        const updateDoc = {
+          $set: {
+            paymentStatus: 'paid',
+          },
+        };
+        await ordersCollection.updateOne(
+          { _id: new ObjectId(query) },
+          updateDoc
+        );
+
+        const paymentRecord = {
+          userEmail: session.customer_email,
+          orderId: session.metadata.orderId,
+          mealName: session.metadata.mealName,
+          transactionId: transactionId,
+          paymentTime: new Date(),
+        };
+        const result = await paymentHistoryCollection.insertOne(paymentRecord);
+        res.send({
+          success: true,
+          modifyParcel: result,
+          transactionId: session.payment_intent,
+        });
+      }
     });
 
     await client.db('admin').command({ ping: 1 });
