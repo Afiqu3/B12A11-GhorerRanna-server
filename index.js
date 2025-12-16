@@ -261,6 +261,14 @@ async function run() {
       res.send(orders);
     });
 
+    app.get('/orders/:email/user', verifyJWTToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail: email };
+      const cursor = ordersCollection.find(query).sort({ orderTime: -1 });
+      const orders = await cursor.toArray();
+      res.send(orders);
+    });
+
     app.post('/orders', verifyJWTToken, async (req, res) => {
       const order = req.body;
       order.orderTime = new Date();
@@ -274,7 +282,7 @@ async function run() {
       const filter = { _id: new ObjectId(id) };
       const updateDoc = {
         $set: {
-          status: newStatus,
+          orderStatus: newStatus,
         },
       };
       const result = await ordersCollection.updateOne(filter, updateDoc);
