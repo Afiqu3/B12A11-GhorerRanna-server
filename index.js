@@ -235,6 +235,14 @@ async function run() {
       res.send(reviews);
     });
 
+    app.get('/reviews/user/:email', verifyJWTToken, async (req, res) => {
+      const email = req.params.email;
+      const query = { userEmail: email };
+      const cursor = reviewsCollection.find(query).sort({ createdAt: -1 });
+      const reviews = await cursor.toArray();
+      res.send(reviews);
+    });
+
     app.post('/reviews', verifyJWTToken, async (req, res) => {
       const review = req.body;
       const result = await reviewsCollection.insertOne(review);
@@ -252,6 +260,40 @@ async function run() {
       };
       await mealsCollection.updateOne({ _id: new ObjectId(mealId) }, updateDoc);
 
+      res.send(result);
+    });
+
+    app.patch('/reviews/:id', verifyJWTToken, async (req, res) => {
+      const id = req.params.id;
+      const updatedReview = req.body;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          ...updatedReview,
+        },
+      };
+      const result = await reviewsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
+    app.delete('/reviews/:id', verifyJWTToken, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const review = await reviewsCollection.findOne(filter);
+
+      const mealId = review.mealId;
+      const meal = await mealsCollection.findOne({ _id: new ObjectId(mealId) });
+      const newReviewCount = (meal.reviewCount || 1) - 1;
+      const newReviewSum = (meal.reviewSum || 0) - review.rating;
+      const updateDoc = {
+        $set: {
+          reviewCount: newReviewCount,
+          reviewSum: newReviewSum,
+          rating: newReviewCount ? newReviewSum / newReviewCount : 0,
+        },
+      };
+      await mealsCollection.updateOne({ _id: new ObjectId(mealId) }, updateDoc);
+      const result = await reviewsCollection.deleteOne(filter);
       res.send(result);
     });
 
