@@ -226,6 +226,13 @@ async function run() {
       res.send(result);
     });
 
+    app.delete('/favorites/:id', verifyJWTToken, async (req, res) => {
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const result = await favoritesMealCollection.deleteOne(filter);
+      res.send(result);
+    });
+
     // reviews related api
     app.get('/reviews/meal/:mealId', async (req, res) => {
       const mealId = req.params.mealId;
