@@ -33,6 +33,12 @@ const verifyJWTToken = (req, res, next) => {
   });
 };
 
+function generateChefId() {
+  const prefix = 'chef';
+  const randomNumber = Math.floor(1000 + Math.random() * 9000);
+  return `${prefix}-${randomNumber}`;
+}
+
 app.get('/', (req, res) => {
   res.send('Server is running');
 });
@@ -100,7 +106,36 @@ async function run() {
       res.send(result);
     });
 
+
+    app.patch('/users/:email/role', verifyJWTToken, async (req, res) => {
+      const email = req.params.email;
+      const newRole = req.body.role;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: {
+          role: newRole,
+        },
+      };
+      if (newRole === 'chef') {
+        const chefId = generateChefId();
+        let chefIdExists = await usersCollection.findOne({ chefId: chefId });
+        while (chefIdExists) {
+          const newChefId = generateChefId();
+          chefIdExists = await usersCollection.findOne({ chefId: newChefId });
+        }
+        updateDoc.$set.chefId = chefId;
+      }
+      const result = await usersCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
     // chef request api
+    app.get('/chef-requests', verifyJWTToken, async (req, res) => {
+      const cursor = chefRequestsCollection.find();
+      const requests = await cursor.toArray();
+      res.send(requests);
+    });
+
     app.get('/chef-requests/:email/check', verifyJWTToken, async (req, res) => {
       const email = req.params.email;
       const query = { userEmail: email };
@@ -119,7 +154,26 @@ async function run() {
       res.send(result);
     });
 
+    app.patch('/chef-requests/:id/status', verifyJWTToken, async (req, res) => {
+      const id = req.params.id;
+      const newStatus = req.body.status;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          requestStatus: newStatus,
+        },
+      };
+      const result = await chefRequestsCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
     // admin request api
+    app.get('/admin-requests', verifyJWTToken, async (req, res) => {
+      const cursor = adminRequestsCollection.find();
+      const requests = await cursor.toArray();
+      res.send(requests);
+    });
+
     app.get(
       '/admin-requests/:email/check',
       verifyJWTToken,
@@ -139,6 +193,19 @@ async function run() {
       request.requestStatus = 'pending';
       request.requestTime = new Date();
       const result = await adminRequestsCollection.insertOne(request);
+      res.send(result);
+    });
+
+    app.patch('/admin-requests/:id/status', verifyJWTToken, async (req, res) => {
+      const id = req.params.id;
+      const newStatus = req.body.status;
+      const filter = { _id: new ObjectId(id) };
+      const updateDoc = {
+        $set: {
+          requestStatus: newStatus,
+        },
+      };
+      const result = await adminRequestsCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
 
