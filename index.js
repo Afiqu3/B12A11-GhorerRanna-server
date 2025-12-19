@@ -112,7 +112,6 @@ async function run() {
       res.send(result);
     });
 
-
     app.patch('/users/:email/role', verifyJWTToken, async (req, res) => {
       const email = req.params.email;
       const newRole = req.body.role;
@@ -215,18 +214,25 @@ async function run() {
       res.send(result);
     });
 
-    app.patch('/admin-requests/:id/status', verifyJWTToken, async (req, res) => {
-      const id = req.params.id;
-      const newStatus = req.body.status;
-      const filter = { _id: new ObjectId(id) };
-      const updateDoc = {
-        $set: {
-          requestStatus: newStatus,
-        },
-      };
-      const result = await adminRequestsCollection.updateOne(filter, updateDoc);
-      res.send(result);
-    });
+    app.patch(
+      '/admin-requests/:id/status',
+      verifyJWTToken,
+      async (req, res) => {
+        const id = req.params.id;
+        const newStatus = req.body.status;
+        const filter = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            requestStatus: newStatus,
+          },
+        };
+        const result = await adminRequestsCollection.updateOne(
+          filter,
+          updateDoc
+        );
+        res.send(result);
+      }
+    );
 
     // meals related api
     app.get('/meals', async (req, res) => {
@@ -391,6 +397,12 @@ async function run() {
     });
 
     // orders related api
+    app.get('/orders', verifyJWTToken, async (req, res) => {
+      const cursor = ordersCollection.find();
+      const orders = await cursor.toArray();
+      res.send(orders);
+    });
+
     app.get('/orders/:chefId', verifyJWTToken, async (req, res) => {
       const chefId = req.params.chefId;
       const query = { chefId: chefId };
