@@ -235,7 +235,6 @@ async function run() {
     );
 
     // meals related api
-    // get api for pagination, sort by price and search
     app.get('/meals', async (req, res) => {
       const page = parseInt(req.query.page) || 0;
       const limit = parseInt(req.query.limit) || 10;
@@ -344,6 +343,12 @@ async function run() {
     });
 
     // reviews related api
+    app.get('/reviews', async (req, res) => {
+      const cursor = reviewsCollection.find().sort({ createdAt: -1 });
+      const reviews = await cursor.toArray();
+      res.send(reviews);
+    });
+
     app.get('/reviews/meal/:mealId', async (req, res) => {
       const mealId = req.params.mealId;
       const query = { mealId: mealId };
