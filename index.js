@@ -344,7 +344,7 @@ async function run() {
 
     // reviews related api
     app.get('/reviews', async (req, res) => {
-      const cursor = reviewsCollection.find().sort({ createdAt: -1 });
+      const cursor = reviewsCollection.find().sort({ date: -1 });
       const reviews = await cursor.toArray();
       res.send(reviews);
     });
