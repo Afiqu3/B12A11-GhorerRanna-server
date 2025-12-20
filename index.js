@@ -235,10 +235,28 @@ async function run() {
     );
 
     // meals related api
+    // get api for pagination, sort by price and search
     app.get('/meals', async (req, res) => {
-      const cursor = mealsCollection.find();
+      const page = parseInt(req.query.page) || 0;
+      const limit = parseInt(req.query.limit) || 10;
+      const sort = req.query.sort || 'asc';
+      const search = req.query.search || '';
+
+      const query = { foodName: { $regex: search, $options: 'i' } };
+
+      const options = {
+        sort: { price: sort === 'asc' ? 1 : -1 },
+      };
+
+      const cursor = mealsCollection
+        .find(query, options)
+        .skip(page * limit)
+        .limit(limit);
+
       const meals = await cursor.toArray();
-      res.send(meals);
+      const totalMeals = await mealsCollection.countDocuments(query);
+
+      res.send({ meals, totalMeals });
     });
 
     app.get('/latest-meals', async (req, res) => {
