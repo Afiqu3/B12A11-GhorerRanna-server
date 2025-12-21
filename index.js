@@ -55,7 +55,7 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     const ghorerRannaDB = client.db('ghorerRannaDB');
     const usersCollection = ghorerRannaDB.collection('users');
     const chefRequestsCollection = ghorerRannaDB.collection('chefRequests');
@@ -513,7 +513,6 @@ async function run() {
           { _id: new ObjectId(query) },
           updateDoc
         );
-
         const paymentRecord = {
           userEmail: session.customer_email,
           orderId: session.metadata.orderId,
@@ -530,10 +529,10 @@ async function run() {
       }
     });
 
-    await client.db('admin').command({ ping: 1 });
-    console.log(
-      'Pinged your deployment. You successfully connected to MongoDB!'
-    );
+    // await client.db('admin').command({ ping: 1 });
+    // console.log(
+    //   'Pinged your deployment. You successfully connected to MongoDB!'
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
