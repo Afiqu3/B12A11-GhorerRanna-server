@@ -147,6 +147,19 @@ async function run() {
       res.send(result);
     });
 
+    api.patch('/users/:email/info', verifyJWTToken, async (req, res) => {
+      const email = req.params.email;
+      const updatedInfo = req.body;
+      const filter = { email: email };
+      const updateDoc = {
+        $set: {
+          ...updatedInfo,
+        },
+      };
+      const result = await usersCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+
     // chef request api
     app.get('/chef-requests', verifyJWTToken, async (req, res) => {
       const cursor = chefRequestsCollection.find();
@@ -259,7 +272,7 @@ async function run() {
     });
 
     app.get('/latest-meals', async (req, res) => {
-      const cursor = mealsCollection.find().sort({ createdAt: -1 }).limit(6);
+      const cursor = mealsCollection.find().sort({ createdAt: -1 }).limit(8);
       const meals = await cursor.toArray();
       res.send(meals);
     });
@@ -273,7 +286,7 @@ async function run() {
       res.send(meals);
     });
 
-    app.get('/meals/:id/info', verifyJWTToken, async (req, res) => {
+    app.get('/meals/:id/info', async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const meal = await mealsCollection.findOne(query);
