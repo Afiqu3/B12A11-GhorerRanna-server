@@ -147,7 +147,7 @@ async function run() {
       res.send(result);
     });
 
-    api.patch('/users/:email/info', verifyJWTToken, async (req, res) => {
+    app.patch('/users/:email/info', verifyJWTToken, async (req, res) => {
       const email = req.params.email;
       const updatedInfo = req.body;
       const filter = { email: email };
